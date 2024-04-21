@@ -4,23 +4,35 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 
 @SuppressWarnings("serial")
 public class TextElement extends Rectangle implements HasText {
 
     private final String text;
     private final PDFont font;
+    private final PDColor color;
     private float fontSize;
     private float widthOfSpace, dir;
     private static final float AVERAGE_CHAR_TOLERANCE = 0.3f;
 
     public TextElement(float y, float x, float width, float height,
+                       PDFont font, PDColor color, float fontSize, String c, float widthOfSpace) {
+        this(y, x, width, height, font, color, fontSize, c, widthOfSpace, 0f);
+    }
+
+    public TextElement(float y, float x, float width, float height,
                        PDFont font, float fontSize, String c, float widthOfSpace) {
-        this(y, x, width, height, font, fontSize, c, widthOfSpace, 0f);
+        this(y, x, width, height, font, null, fontSize, c, widthOfSpace, 0f);
     }
 
     public TextElement(float y, float x, float width, float height,
                        PDFont font, float fontSize, String c, float widthOfSpace, float dir) {
+        this(y,x,width,height,font,null,fontSize,c,widthOfSpace,dir);
+    }
+
+    public TextElement(float y, float x, float width, float height,
+                       PDFont font, PDColor color, float fontSize, String c, float widthOfSpace, float dir) {
         super();
         this.setRect(x, y, width, height);
         this.text = c;
@@ -28,6 +40,7 @@ public class TextElement extends Rectangle implements HasText {
         this.fontSize = fontSize;
         this.font = font;
         this.dir = dir;
+        this.color = color;
     }
 
     @Override
@@ -51,6 +64,8 @@ public class TextElement extends Rectangle implements HasText {
     public PDFont getFont() {
         return font;
     }
+
+    public PDColor getColor() { return color; }
 
     public float getFontSize() {
         return fontSize;
@@ -230,6 +245,7 @@ public class TextElement extends Rectangle implements HasText {
                         expectedStartOfNextWordX - prevChar.getLeft(),
                         (float) prevChar.getHeight(),
                         prevChar.getFont(),
+                        prevChar.getColor(),
                         prevChar.getFontSize(),
                         " ",
                         prevChar.getWidthOfSpace());

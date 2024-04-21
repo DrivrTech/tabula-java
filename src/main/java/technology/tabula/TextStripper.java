@@ -7,9 +7,12 @@ import org.apache.pdfbox.pdmodel.font.PDFontDescriptor;
 import org.apache.pdfbox.pdmodel.font.PDType3Font;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
+import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
+import org.apache.pdfbox.contentstream.operator.color.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class TextStripper extends PDFTextStripper {
@@ -20,6 +23,7 @@ public class TextStripper extends PDFTextStripper {
     private static final float MIN_BLANK_FONT_SIZE = 2.0f;
     private final PDDocument document;
     private final ArrayList<TextElement> textElements;
+    private final HashMap<TextPosition, PDColor> textColorLookup;
     private final RectangleSpatialIndex<TextElement> spatialIndex;
     private float minCharWidth = Float.MAX_VALUE;
     private float minCharHeight = Float.MAX_VALUE;
@@ -28,11 +32,26 @@ public class TextStripper extends PDFTextStripper {
 
     public TextStripper(PDDocument document, int pageNumber) throws IOException {
         super();
+
+        addOperator(new SetStrokingColorSpace());
+        addOperator(new SetNonStrokingColorSpace());
+        addOperator(new SetStrokingDeviceCMYKColor());
+        addOperator(new SetNonStrokingDeviceCMYKColor());
+        addOperator(new SetNonStrokingDeviceRGBColor());
+        addOperator(new SetStrokingDeviceRGBColor());
+        addOperator(new SetNonStrokingDeviceGrayColor());
+        addOperator(new SetStrokingDeviceGrayColor());
+        addOperator(new SetStrokingColor());
+        addOperator(new SetStrokingColorN());
+        addOperator(new SetNonStrokingColor());
+        addOperator(new SetNonStrokingColorN());
+
         this.document = document;
         this.setStartPage(pageNumber);
         this.setEndPage(pageNumber);
         this.textElements = new ArrayList<>();
         this.spatialIndex = new RectangleSpatialIndex<>();
+        this.textColorLookup = new HashMap<>();
     }
 
     public void process() throws IOException {
@@ -63,9 +82,11 @@ public class TextStripper extends PDFTextStripper {
 
             float wos = textPosition.getWidthOfSpace();
 
+            PDColor color = this.textColorLookup.get(textPosition);
+
             TextElement te = new TextElement(Utils.round(textPosition.getYDirAdj() - h, 2),
                     Utils.round(textPosition.getXDirAdj(), 2), Utils.round(textPosition.getWidthDirAdj(), 2),
-                    Utils.round(textPosition.getHeightDir(), 2), textPosition.getFont(), textPosition.getFontSizeInPt(), c,
+                    Utils.round(textPosition.getHeightDir(), 2), textPosition.getFont(), color, textPosition.getFontSizeInPt(), c,
                     // workaround a possible bug in PDFBox:
                     // https://issues.apache.org/jira/browse/PDFBOX-1755
                     wos, textPosition.getDir());
@@ -171,5 +192,11 @@ public class TextStripper extends PDFTextStripper {
 
     public float getMinCharHeight() {
         return minCharHeight;
+    }
+
+    @Override
+    protected void processTextPosition(TextPosition text) {
+        super.processTextPosition(text);
+        this.textColorLookup.put(text, getGraphicsState().getNonStrokingColor());
     }
 }
